@@ -1,5 +1,5 @@
-﻿//DES算法的实现
-#include<iostream>
+#include <iostream>
+#include <cstring>
 
 using namespace std;
 
@@ -132,7 +132,7 @@ void E(int R[32], int E_R[48]) {
 }
 
 //异或函数
-void XOR(int *A, int *B, int *C, int length) {
+void XOR(int* A, int* B, int* C, int length) {
 	for (int i = 0; i < length; i++) {
 		C[i] = A[i] ^ B[i];
 	}
@@ -176,12 +176,11 @@ void FP(int M[64], int FP_M[64]) {
 }
 
 //生成子密钥
-//生成子密钥
 void CreateSubKey() {
 	int C[28] = {};
 	int D[28] = {};
 	int CD[56] = {};
-	int tempC, tempD; 
+	int tempC, tempD;
 	for (int i = 0; i < 28; i++) {
 		C[i] = key[PC_1[i] - 1];
 		D[i] = key[PC_1[i + 28] - 1];
@@ -209,41 +208,13 @@ void CreateSubKey() {
 	}
 }
 
-//加密函数
-
-
-int main() {
-	// 生成明文
-	int text[64] = {
-		0,1,0,1,0,1,0,1,
-		1,0,1,0,1,0,1,0,
-		0,1,0,1,0,1,0,1,
-		1,0,1,0,1,0,1,0,
-		0,1,0,1,0,1,0,1,
-		1,0,1,0,1,0,1,0,
-		0,1,0,1,0,1,0,1,
-		1,0,1,0,1,0,1,0
-	};
-
-	// 打印明文
-	cout << "明文: ";
-	for (int i = 0; i < 64; i++) {
-		cout << text[i];
-	}
-	cout << endl;
-
-	// 密文
-	int cipher[64] = {};
+//加解密函数
+void DES(int text[64], int result[64], bool is_encrypt) {
 	// 生成子密钥
 	CreateSubKey();
 	// 初始置换
 	int IP_text[64] = {};
 	IP(text, IP_text);
-	/*//打印置换后的明文	
-	cout << "初始置换后的明文: ";
-	for (int i = 0; i < 64; i++) {
-		cout << IP_text[i];
-	}*/
 	// 左右分组
 	int L[32] = {};
 	int R[32] = {};
@@ -259,7 +230,12 @@ int main() {
 		int P_R[32] = {};
 		int XOR_R[48] = {};
 		E(R, E_R);
-		XOR(E_R, subkey[i], XOR_R, 48);
+		if (is_encrypt) {
+			XOR(E_R, subkey[i], XOR_R, 48);
+		}
+		else {
+			XOR(E_R, subkey[15 - i], XOR_R, 48);
+		}
 		S_Box(XOR_R, S_R);
 		P(S_R, P_R);
 		XOR(L, P_R, temp, 32);
@@ -275,15 +251,80 @@ int main() {
 		tempLR[i + 32] = L[i];
 	}
 	//逆初始置换
-	FP(tempLR, cipher);
-	//打印密文
-	cout << "密文: ";
-	for (int i = 0; i < 64; i++) {
-		cout << cipher[i];
-	}
-	cout << endl;
+	FP(tempLR, result);
+}
 
+void hex_to_binary(const char* hex, int* binary) {
+	for (int i = 0; i < 16; i++) {
+		int temp = 0;
+		if (hex[i] >= '0' && hex[i] <= '9') {
+			temp = hex[i] - '0';
+		}
+		else if (hex[i] >= 'A' && hex[i] <= 'F') {
+			temp = hex[i] - 'A' + 10;
+		}
+		else if (hex[i] >= 'a' && hex[i] <= 'f') {
+			temp = hex[i] - 'a' + 10;
+		}
+		for (int j = 0; j < 4; j++) {
+			binary[i * 4 + 3 - j] = temp % 2;
+			temp = temp / 2;
+		}
+	}
+}
+
+void binary_to_hex(const int* binary, char* hex) {
+	for (int i = 0; i < 16; i++) {
+		int temp = 0;
+		for (int j = 0; j < 4; j++) {
+			temp = temp * 2 + binary[i * 4 + j];
+		}
+		if (temp < 10) {
+			hex[i] = '0' + temp;
+		}
+		else {
+			hex[i] = 'A' + temp - 10;
+		}
+	}
+	hex[16] = '\0';
+}
+
+int main() {
+	while (true) {
+		int choice;
+		char hex_input[17];
+		int text[64] = {};
+		int result[64] = {};
+		char hex_output[17];
+
+		cout << "请选择操作：1. 加密 2. 解密 3. 退出" << endl;
+		cin >> choice;
+		if (choice == 3) {
+			cout << "退出程序。" << endl;
+			break;
+		}
+		if (choice != 1 && choice != 2) {
+			cout << "无效的选择！" << endl;
+			continue;
+		}
+
+		cout << "请输入16进制数据: ";
+		cin >> hex_input;
+
+		hex_to_binary(hex_input, text);
+
+		if (choice == 1) {
+			DES(text, result, true);
+			cout << "加密结果: ";
+		}
+		else {
+			DES(text, result, false);
+			cout << "解密结果: ";
+		}
+
+		binary_to_hex(result, hex_output);
+		cout << hex_output << endl;
+	}
 
 	return 0;
 }
-
